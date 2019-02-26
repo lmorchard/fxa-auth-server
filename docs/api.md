@@ -51,6 +51,7 @@ see [`mozilla/fxa-js-client`](https://github.com/mozilla/fxa-js-client).
   * [Oauth](#oauth)
     * [GET /oauth/client/{client_id}](#get-oauthclientclient_id)
     * [POST /account/scoped-key-data (:lock: sessionToken)](#post-accountscoped-key-data)
+    * [POST /oauth/authorization (:lock: sessionToken)](#post-oauthauthorization)
   * [Password](#password)
     * [POST /password/change/start](#post-passwordchangestart)
     * [POST /password/change/finish (:lock: passwordChangeToken)](#post-passwordchangefinish)
@@ -308,6 +309,16 @@ for `code` and `errno` are:
   Redis WATCH detected a conflicting update
 * `code: 400, errno: 166`:
   Not a public client
+* `code: 400, errno: 167`:
+  Incorrect redirect URI
+* `code: 400, errno: 168`:
+  Invalid response_type
+* `code: 400, errno: 169`:
+  Requested scopes are not allowed
+* `code: 400, errno: 170`:
+  Public clients require PKCE OAuth parameters
+* `code: 400, errno: 171`:
+  Required Authentication Context Reference values could not be satisfied
 * `code: 503, errno: 201`:
   Service unavailable
 * `code: 503, errno: 202`:
@@ -342,6 +353,9 @@ include additional response properties:
 * `errno: 153`
 * `errno: 162`: clientId
 * `errno: 164`: authAt
+* `errno: 167`: redirectUri
+* `errno: 169`: invalidScopes
+* `errno: 171`: foundValue
 * `errno: 201`: retryAfter
 * `errno: 202`: retryAfter
 * `errno: 203`: service, operation
@@ -385,8 +399,11 @@ those common validations are defined here.
 * `clientId`: `module.exports.hexString.length(16)`
 * `accessToken`: `module.exports.hexString.length(64)`
 * `refreshToken`: `module.exports.hexString.length(64)`
+* `authorizationCode`: `module.exports.hexString.length(32)`
 * `scope`: `string, max(256), regex(/^[a-zA-Z0-9 _\/.:-]+$/)`
 * `assertion`: `string, min(50), max(10240), regex(/^[a-zA-Z0-9_\-\.~=]+$/)`
+* `pkceCodeChallengeMethod`: `string, valid('S256')`
+* `pkceCodeChallenge`: `string, length(43)`
 * `jwe`: `string, max(1024), regex(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/)`
 * `verificationMethod`: `string, valid()`
 * `authPW`: `string, length(64), regex(HEX_STRING), required`
@@ -1967,6 +1984,14 @@ Query for the information required
 to derive scoped encryption keys
 requested by the specified OAuth client.
 <!--end-route-post-accountscoped-key-data-->
+
+
+#### POST /oauth/authorization
+
+:lock: HAWK-authenticated with session token
+<!--begin-route-post-oauthauthorization-->
+
+<!--end-route-post-oauthauthorization-->
 
 
 ### Password
