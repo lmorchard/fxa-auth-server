@@ -285,4 +285,13 @@ AppError.mismatchAcr = function mismatchAcr(foundValue) {
   }, {foundValue});
 };
 
+AppError.invalidGrantType = function invalidGrantType() {
+  return new AppError({
+    code: 400,
+    error: 'Bad Request',
+    errno: 121,
+    message: 'Invalid grant_type'
+  });
+};
+
 module.exports = AppError;
