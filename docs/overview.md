@@ -39,6 +39,7 @@ These events contain the `uid` of the account to be able to better understand ne
 
 * account.created - [Account is created](api.md#post-v1accountcreate)
 * account.verified - [Account is verified](api.md#post-v1recovery_emailverify_code)
+* account.reminder - Account is verified via a reminder email
 * account.login - [Account login event](api.md#post-v1accountlogin)
 * account.confirmed - [Account login is confirmed](api.md#post-v1recovery_emailverify_code)
 * account.keyfetch - [Sync encryption keys have been fetched](api.md#get-v1accountkeys)
