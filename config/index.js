@@ -879,10 +879,10 @@ var conf = convict({
   },
   verificationReminders: {
     rolloutRate: {
-      doc: 'Rollout rate for verification reminder emails, in the range 1 .. 0',
+      doc: 'Rollout rate for verification reminder emails, in the range 0 .. 1',
       default: 1,
       env: 'VERIFICATION_REMINDERS_ROLLOUT_RATE',
-      format: 'nat',
+      format: Number,
     },
     firstInterval: {
       doc: 'Time since account creation after which the first reminder is sent',
