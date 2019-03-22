@@ -52,6 +52,7 @@ see [`mozilla/fxa-js-client`](https://github.com/mozilla/fxa-js-client).
     * [GET /oauth/client/{client_id}](#get-oauthclientclient_id)
     * [POST /account/scoped-key-data (:lock: sessionToken)](#post-accountscoped-key-data)
     * [POST /oauth/authorization (:lock: sessionToken)](#post-oauthauthorization)
+    * [POST /oauth/token (:lock::unlock: sessionToken)](#post-oauthtoken)
   * [Password](#password)
     * [POST /password/change/start](#post-passwordchangestart)
     * [POST /password/change/finish (:lock: passwordChangeToken)](#post-passwordchangefinish)
@@ -1992,6 +1993,26 @@ requested by the specified OAuth client.
 <!--begin-route-post-oauthauthorization-->
 
 <!--end-route-post-oauthauthorization-->
+
+
+#### POST /oauth/token
+
+:lock::unlock: Optionally HAWK-authenticated with session token
+<!--begin-route-post-oauthtoken-->
+
+<!--end-route-post-oauthtoken-->
+
+##### Error responses
+
+Failing requests may be caused
+by the following errors
+(this is not an exhaustive list):
+
+* `code: 401, errno: 110`:
+  Invalid authentication token in request signature
+
+* `code: 500, errno: 998`:
+  An internal validation check failed.
 
 
 ### Password
