@@ -51,6 +51,7 @@ var makeRoutes = function (options = {}, requireMocks) {
     signinUtils.checkPassword = options.checkPassword
   }
   const push = options.push || require('../../../lib/push')(log, db, {})
+  const verificationReminders = options.verificationReminders || mocks.mockVerificationReminders()
   return proxyquire('../../../lib/routes/account', requireMocks || {})(
     log,
     db,
@@ -59,7 +60,8 @@ var makeRoutes = function (options = {}, requireMocks) {
     config,
     customs,
     signinUtils,
-    push
+    push,
+    verificationReminders,
   )
 }
 

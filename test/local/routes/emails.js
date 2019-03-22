@@ -52,13 +52,15 @@ var makeRoutes = function (options = {}, requireMocks) {
     check: function () { return P.resolve(true) }
   }
   var push = options.push || require('../../../lib/push')(log, db, {})
+  const verificationReminders = options.verificationReminders || mocks.mockVerificationReminders()
   return proxyquire('../../../lib/routes/emails', requireMocks || {})(
     log,
     db,
     options.mailer || {},
     config,
     customs,
-    push
+    push,
+    verificationReminders,
   )
 }
 
@@ -453,6 +455,7 @@ describe('/recovery_email/verify_code', function () {
   var mockMailer = mocks.mockMailer()
   const mockPush = mocks.mockPush()
   var mockCustoms = mocks.mockCustoms()
+  const verificationReminders = mocks.mockVerificationReminders()
   var accountRoutes = makeRoutes({
     checkPassword: function () {
       return P.resolve(true)
@@ -462,9 +465,22 @@ describe('/recovery_email/verify_code', function () {
     db: mockDB,
     log: mockLog,
     mailer: mockMailer,
-    push: mockPush
+    push: mockPush,
+    verificationReminders,
   })
   var route = getRoute(accountRoutes, '/recovery_email/verify_code')
+
+  afterEach(() => {
+    mockDB.verifyTokens.resetHistory()
+    mockDB.verifyEmail.resetHistory()
+    mockLog.activityEvent.resetHistory()
+    mockLog.flowEvent.resetHistory()
+    mockLog.notifyAttachedServices.resetHistory()
+    mockMailer.sendPostVerifyEmail.resetHistory()
+    mockPush.notifyAccountUpdated.resetHistory()
+    verificationReminders.delete.resetHistory()
+  })
+
   describe('verifyTokens rejects with INVALID_VERIFICATION_CODE', function () {
 
     it('without a reminder payload', function () {
@@ -513,17 +529,13 @@ describe('/recovery_email/verify_code', function () {
         assert.ok(Array.isArray(args[1]), 'second argument should have been devices array')
         assert.equal(args[2], 'accountVerify', 'third argument should have been reason')
 
+        assert.equal(verificationReminders.delete.callCount, 1)
+        args = verificationReminders.delete.args[0]
+        assert.lengthOf(args, 1)
+        assert.equal(args[0], uid)
+
         assert.equal(JSON.stringify(response), '{}')
       })
-        .then(function () {
-          mockDB.verifyTokens.resetHistory()
-          mockDB.verifyEmail.resetHistory()
-          mockLog.activityEvent.resetHistory()
-          mockLog.flowEvent.resetHistory()
-          mockLog.notifyAttachedServices.resetHistory()
-          mockMailer.sendPostVerifyEmail.resetHistory()
-          mockPush.notifyAccountUpdated.resetHistory()
-        })
     })
 
     it('with marketingOptIn', () => {
@@ -543,42 +555,25 @@ describe('/recovery_email/verify_code', function () {
 
         assert.equal(JSON.stringify(response), '{}')
       })
-        .then(function () {
-          delete mockRequest.payload.marketingOptIn
-          mockDB.verifyTokens.resetHistory()
-          mockDB.verifyEmail.resetHistory()
-          mockLog.activityEvent.resetHistory()
-          mockLog.flowEvent.resetHistory()
-          mockLog.notifyAttachedServices.resetHistory()
-          mockMailer.sendPostVerifyEmail.resetHistory()
-          mockPush.notifyAccountUpdated.resetHistory()
-        })
     })
 
     it('with a reminder payload', function () {
       mockRequest.payload.reminder = 'second'
 
       return runTest(route, mockRequest, function (response) {
-        assert.equal(mockLog.activityEvent.callCount, 1, 'activityEvent was called once')
+        assert.equal(mockLog.activityEvent.callCount, 1)
 
-        assert.equal(mockLog.flowEvent.callCount, 2, 'flowEvent was called twice')
-        assert.equal(mockLog.flowEvent.args[0][0].event, 'email.verify_code.clicked', 'first event was email.verify_code.clicked')
-        assert.equal(mockLog.flowEvent.args[1][0].event, 'account.verified', 'second event was account.verified')
+        assert.equal(mockLog.flowEvent.callCount, 3)
+        assert.equal(mockLog.flowEvent.args[0][0].event, 'email.verify_code.clicked')
+        assert.equal(mockLog.flowEvent.args[1][0].event, 'account.verified')
+        assert.equal(mockLog.flowEvent.args[2][0].event, 'account.reminder')
 
-        assert.equal(mockMailer.sendPostVerifyEmail.callCount, 1, 'sendPostVerifyEmail was called once')
-        assert.equal(mockPush.notifyAccountUpdated.callCount, 1, 'mockPush.notifyAccountUpdated should have been called once')
+        assert.equal(verificationReminders.delete.callCount, 1)
+        assert.equal(mockMailer.sendPostVerifyEmail.callCount, 1)
+        assert.equal(mockPush.notifyAccountUpdated.callCount, 1)
 
         assert.equal(JSON.stringify(response), '{}')
       })
-        .then(function () {
-          mockDB.verifyTokens.resetHistory()
-          mockDB.verifyEmail.resetHistory()
-          mockLog.activityEvent.resetHistory()
-          mockLog.flowEvent.resetHistory()
-          mockLog.notifyAttachedServices.resetHistory()
-          mockMailer.sendPostVerifyEmail.resetHistory()
-          mockPush.notifyAccountUpdated.resetHistory()
-        })
     })
   })
 
@@ -598,9 +593,6 @@ describe('/recovery_email/verify_code', function () {
         assert.equal(mockPush.notifyAccountUpdated.callCount, 0, 'mockPush.notifyAccountUpdated should not have been called')
         assert.equal(mockPush.notifyDeviceConnected.callCount, 0, 'mockPush.notifyDeviceConnected should not have been called (no devices)')
       })
-        .then(function () {
-          mockDB.verifyTokens.resetHistory()
-        })
     })
 
     it('email verification with associated device', function () {
@@ -619,9 +611,6 @@ describe('/recovery_email/verify_code', function () {
         assert.equal(mockPush.notifyAccountUpdated.callCount, 0, 'mockPush.notifyAccountUpdated should not have been called')
         assert.equal(mockPush.notifyDeviceConnected.callCount, 1, 'mockPush.notifyDeviceConnected should have been called')
       })
-        .then(function () {
-          mockDB.verifyTokens.resetHistory()
-        })
     })
 
     it('sign-in confirmation', function () {
@@ -651,11 +640,6 @@ describe('/recovery_email/verify_code', function () {
         assert.ok(Array.isArray(args[1]), 'second argument should have been devices array')
         assert.equal(args[2], 'accountConfirm', 'third argument should have been reason')
       })
-        .then(function () {
-          mockDB.verifyTokens.resetHistory()
-          mockLog.activityEvent.resetHistory()
-          mockPush.notifyAccountUpdated.resetHistory()
-        })
     })
 
     it('secondary email verification', function () {
@@ -679,12 +663,6 @@ describe('/recovery_email/verify_code', function () {
         assert.equal(args[2].service, mockRequest.payload.service)
         assert.equal(args[2].uid, uid)
       })
-        .then(function () {
-          mockDB.verifyEmail.resetHistory()
-          mockLog.activityEvent.resetHistory()
-          mockMailer.sendPostVerifySecondaryEmail.resetHistory()
-          mockPush.notifyAccountUpdated.resetHistory()
-        })
     })
   })
 })
